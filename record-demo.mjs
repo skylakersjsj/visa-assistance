@@ -1,0 +1,40 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+process.env.PLAYWRIGHT_BROWSERS_PATH = fileURLToPath(new URL('./.cache/playwright', import.meta.url));
+await fs.mkdir('demo-output', { recursive: true });
+const browser = await chromium.launch({headless:true, executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+const context = await browser.newContext({viewport:{width:1440,height:1080},recordVideo:{dir:'demo-output',size:{width:1440,height:1080}}});
+const page = await context.newPage();
+const pause = () => page.waitForTimeout(2200);
+try {
+  await page.goto('http://localhost:4173');
+  await page.getByRole('button',{name:'Taylor Smith',exact:true}).click();
+  await pause();
+  await page.getByRole('button',{name:'Web Screenshot',exact:true}).click();
+  await pause();
+  await page.getByRole('button',{name:'Use sample article'}).click();
+  await page.getByRole('button',{name:'Send to Image Description'}).waitFor({timeout:60000});
+  await pause();
+  await page.getByRole('button',{name:'Send to Image Description'}).click();
+  await page.getByLabel('O1B Criterion',{exact:true}).selectOption('Media Coverage');
+  await page.getByLabel('Context / Notes').fill('Fictional sample article for a product demonstration. All names and events are fictional.');
+  await pause();
+  await page.getByRole('button',{name:'Generate Descriptions for All',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#description-text')?.value.length>0,{},{timeout:90000});
+  await page.locator('#description-text').scrollIntoViewIfNeeded();
+  await pause();
+  await page.screenshot({path:'demo-output/ai-description.png'});
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await page.getByRole('button',{name:"View in Taylor Smith's Saved Evidence"}).click();
+  await pause();
+  await page.getByRole('button').filter({hasText:'studio-journal.png'}).first().click();
+  await pause();
+  await page.screenshot({path:'demo-output/saved-evidence.png'});
+  console.log('Full workflow completed.');
+} finally {
+  const video = page.video();
+  await context.close();
+  await video.saveAs('demo-output/visa-assistant-demo.webm');
+  await browser.close();
+}
